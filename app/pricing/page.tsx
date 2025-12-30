@@ -77,7 +77,7 @@ export default function PricingPage() {
 
       <main className="flex-1">
         {/* Hero Section */}
-        <section className="container mx-auto px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
+        <section className="container mx-auto px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
           <div className="mx-auto max-w-4xl text-center">
             <h1 className="text-4xl font-semibold tracking-tight text-black dark:text-white sm:text-5xl lg:text-6xl">
               Simple <span className="bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 bg-clip-text text-transparent">Pricing</span>
@@ -89,13 +89,13 @@ export default function PricingPage() {
         </section>
 
         {/* Pricing Cards */}
-        <section className="container mx-auto px-4 pb-24 sm:px-6 lg:px-8">
+        <section className="container mx-auto px-4 pb-8 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-7xl">
-            <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
               {pricingPlans.map((plan) => (
                 <div
                   key={plan.name}
-                  className="relative rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8"
+                  className="relative rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 flex flex-col"
                 >
                   {plan.popular && (
                     <div className="absolute -top-4 right-4">
@@ -114,7 +114,7 @@ export default function PricingPage() {
                     </div>
                     <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{plan.description}</p>
                   </div>
-                  <ul className="mb-8 space-y-3">
+                  <ul className="mb-4 space-y-2">
                     {plan.features.map((feature, index) => (
                       <li key={index} className="flex items-start gap-3">
                         <Check className="mt-0.5 h-5 w-5 flex-shrink-0 text-green-600" />
@@ -122,7 +122,7 @@ export default function PricingPage() {
                       </li>
                     ))}
                   </ul>
-                  <Link href={plan.ctaLink} className="block w-full">
+                  <Link href={plan.ctaLink} className="mt-auto block w-full">
                     <Button
                       variant={plan.popular ? "default" : "outline"}
                       className="w-full"
