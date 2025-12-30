@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabaseClient";
 import { Logo } from "@/components/Logo";
-import { ThemeToggle } from "@/components/ThemeToggle";
+import { HeaderProfile } from "@/components/HeaderProfile";
 
 export function Header() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -67,15 +67,7 @@ export function Header() {
               <Link href="/app">
                 <Button variant="outline">App</Button>
               </Link>
-              <button
-                onClick={async () => {
-                  await supabase.auth.signOut();
-                  window.location.href = "/";
-                }}
-                className="text-sm font-medium text-gray-700 hover:text-black dark:text-gray-300 dark:hover:text-white"
-              >
-                Sign out
-              </button>
+              <HeaderProfile />
             </>
           ) : (
             <>
@@ -87,7 +79,6 @@ export function Header() {
               </Link>
             </>
           )}
-          <ThemeToggle />
         </nav>
       </div>
     </header>

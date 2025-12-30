@@ -1,59 +1,121 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
 
-type Theme = "light" | "dark";
+export type Theme = "light" | "dark" | "system";
 
 interface ThemeContextType {
   theme: Theme;
-  toggleTheme: () => void;
+  resolvedTheme: "light" | "dark";
+  setTheme: (theme: Theme) => void;
 }
 
 const ThemeContext = createContext<ThemeContextType>({
-  theme: "light",
-  toggleTheme: () => {},
+  theme: "system",
+  resolvedTheme: "light",
+  setTheme: () => {},
 });
 
+const getSystemTheme = (): "light" | "dark" => {
+  if (typeof window === "undefined") return "light";
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+};
+
+const applyTheme = (theme: Theme) => {
+  if (typeof window === "undefined") return;
+  
+  const root = document.documentElement;
+  const resolved = theme === "system" ? getSystemTheme() : theme;
+  
+  if (resolved === "dark") {
+    root.classList.add("dark");
+  } else {
+    root.classList.remove("dark");
+  }
+};
+
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>("light");
+  const [theme, setThemeState] = useState<Theme>("system");
+  const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">("light");
   const [mounted, setMounted] = useState(false);
 
-  const updateTheme = (newTheme: Theme) => {
-    const root = document.documentElement;
-    if (newTheme === "dark") {
-      root.classList.add("dark");
-    } else {
-      root.classList.remove("dark");
-    }
-  };
-
   useEffect(() => {
-    const savedTheme = localStorage.getItem("theme") as Theme | null;
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    const initialTheme = savedTheme || (prefersDark ? "dark" : "light");
-    
-    // Check if dark class is already set (from script tag)
-    const isDark = document.documentElement.classList.contains("dark");
-    const currentTheme = isDark ? "dark" : "light";
-    
-    // Use saved theme if available, otherwise use current or initial
-    const finalTheme = savedTheme || currentTheme || initialTheme;
-    
-    setTheme(finalTheme);
-    updateTheme(finalTheme);
-    setMounted(true);
+    const loadTheme = async () => {
+      let savedTheme: Theme = "system";
+      
+      // Try to get theme from Supabase user metadata first
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user?.user_metadata?.theme) {
+          savedTheme = session.user.user_metadata.theme as Theme;
+        }
+      } catch (e) {
+        // Fallback to localStorage
+      }
+      
+      // Fallback to localStorage if no Supabase theme
+      if (savedTheme === "system") {
+        const localTheme = localStorage.getItem("theme") as Theme | null;
+        if (localTheme && ["light", "dark", "system"].includes(localTheme)) {
+          savedTheme = localTheme;
+        }
+      }
+      
+      setThemeState(savedTheme);
+      const resolved = savedTheme === "system" ? getSystemTheme() : savedTheme;
+      setResolvedTheme(resolved);
+      applyTheme(savedTheme);
+      setMounted(true);
+    };
+
+    loadTheme();
+
+    // Listen for system theme changes
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const handleSystemThemeChange = () => {
+      if (theme === "system") {
+        const resolved = getSystemTheme();
+        setResolvedTheme(resolved);
+        applyTheme("system");
+      }
+    };
+
+    mediaQuery.addEventListener("change", handleSystemThemeChange);
+    return () => mediaQuery.removeEventListener("change", handleSystemThemeChange);
   }, []);
 
-  const toggleTheme = () => {
-    const currentTheme = document.documentElement.classList.contains("dark") ? "dark" : "light";
-    const newTheme = currentTheme === "light" ? "dark" : "light";
-    setTheme(newTheme);
-    localStorage.setItem("theme", newTheme);
-    updateTheme(newTheme);
+  useEffect(() => {
+    if (!mounted) return;
+    
+    const resolved = theme === "system" ? getSystemTheme() : theme;
+    setResolvedTheme(resolved);
+    applyTheme(theme);
+    localStorage.setItem("theme", theme);
+    
+    // Sync to Supabase user metadata
+    const syncToSupabase = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          await supabase.auth.updateUser({
+            data: { theme }
+          });
+        }
+      } catch (e) {
+        // Silently fail if update doesn't work
+      }
+    };
+    
+    syncToSupabase();
+  }, [theme, mounted]);
+
+  const setTheme = (newTheme: Theme) => {
+    setThemeState(newTheme);
   };
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+    <ThemeContext.Provider value={{ theme, resolvedTheme, setTheme }}>
       {children}
     </ThemeContext.Provider>
   );
@@ -61,5 +123,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
 export function useTheme() {
   const context = useContext(ThemeContext);
+  if (context === undefined) {
+    throw new Error("useTheme must be used within a ThemeProvider");
+  }
   return context;
 }

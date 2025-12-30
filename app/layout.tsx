@@ -31,9 +31,9 @@ export default function RootLayout({
             __html: `
               (function() {
                 try {
-                  const theme = localStorage.getItem('theme');
+                  const theme = localStorage.getItem('theme') || 'system';
                   const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                  const shouldBeDark = theme === 'dark' || (!theme && prefersDark);
+                  const shouldBeDark = theme === 'dark' || (theme === 'system' && prefersDark);
                   if (shouldBeDark) {
                     document.documentElement.classList.add('dark');
                   } else {
